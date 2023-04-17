@@ -117,8 +117,39 @@ struct ListArgs {
     solved: bool,
 }
 
+use indicatif::{ProgressBar, ProgressStyle};
+// use core::time::Duration;
+
 fn main() {
     let args: Args = argh::from_env();
+
+    // let bar = ProgressBar::new(94);
+    // bar.enable_steady_tick(1);
+
+    // let bar = ProgressBar::new(100 as u64);
+    // // bar.enable_steady_tick(1);
+
+    // bar.set_style(ProgressStyle::default_bar()
+    //     .template("Progress: PPR [{bar:60.green/red}] {pos}/{len} {msg}").unwrap()
+    //     .progress_chars("#>-")
+    // );
+    // bar.set_position(0 as u64);
+    // for i in 0..100 {
+    //     bar.set_message(format!("({:.1} %)", i));
+    //     bar.inc(1);
+    //     std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // }
+
+    // for i in 0..100 {
+    //     bar.set_message(format!("({:.1} %)", i));
+    //     bar.inc(1);
+    //     std::thread::sleep(std::time::Duration::from_millis(100));
+
+    // }
+
+    // std::process::exit(0);
+
 
     if args.version {
         println!("v{VERSION}");
@@ -148,6 +179,9 @@ fn main() {
     let toml_str = &fs::read_to_string("info.toml").unwrap();
     let exercises = toml::from_str::<ExerciseList>(toml_str).unwrap().exercises;
     let verbose = args.nocapture;
+    
+    println!("Total : {}", exercises.len());
+    // std::process::exit(0);
 
     let command = args.nested.unwrap_or_else(|| {
         println!("{DEFAULT_OUT}\n");
@@ -360,6 +394,7 @@ fn watch(exercises: &[Exercise], verbose: bool) -> notify::Result<WatchStatus> {
         Ok(_) => return Ok(WatchStatus::Finished),
         Err(exercise) => Arc::new(Mutex::new(Some(to_owned_hint(exercise)))),
     };
+    // std::process::exit(0);
     spawn_watch_shell(&failed_exercise_hint, Arc::clone(&should_quit));
     loop {
         match rx.recv_timeout(Duration::from_secs(1)) {

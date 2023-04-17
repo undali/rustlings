@@ -1,7 +1,9 @@
 use crate::exercise::{CompiledExercise, Exercise, Mode, State};
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
 use std::env;
+use std::time::Duration;
+
 
 // Verify that the provided container of Exercise objects
 // can be compiled and run without any failures.
@@ -14,28 +16,89 @@ pub fn verify<'a>(
     verbose: bool,
 ) -> Result<(), &'a Exercise> {
     let (mut num_done, total) = progress;
-    let bar = ProgressBar::new(total as u64);
-    bar.set_style(ProgressStyle::default_bar()
-        .template("Progress: [{bar:60.green/red}] {pos}/{len} {msg}")
-        .progress_chars("#>-")
-    );
-    bar.set_position(num_done as u64);
-    bar.set_message(format!("({:.1} %)", 0.));
+    let multi_bar:MultiProgress = MultiProgress::new();
 
+    for _ in 0..10 {
+
+        let bar = multi_bar.add(ProgressBar::new(10 as u64));
+        // bar.enable_steady_tick(1);
+
+        bar.set_style(ProgressStyle::default_bar()
+            .template("Progress: PPR [{bar:60.green/red}] {pos}/{len} {msg}").unwrap()
+            .progress_chars("#>-")
+        );
+        bar.set_position(num_done as u64);
+        bar.set_message(format!("({:.1} %)", 0.));
+
+        for i in 0..10 {
+            bar.set_message(format!("({:.1} %)", i));
+            bar.inc(1);
+
+
+            let progress_bar = multi_bar.add(ProgressBar::new_spinner());
+            progress_bar.set_message(format!("Compiling ..."));
+            progress_bar.enable_steady_tick(Duration::from_millis(10));
+        
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            multi_bar.remove(&progress_bar);
+            progress_bar.finish_and_clear();
+
+        }
+        multi_bar.remove(&bar);
+        bar.finish_and_clear();
+    }
+
+    std::process::exit(0);
+
+    // let f = [verbose](add: i32) {
+
+	// };
+
+
+    // let update = |cnt| {
+    //     // bar.set_message(format!("({:.1} %)", cnt));
+    //     // bar.tick();
+    //     // bar.inc(1);
+    // };
+
+    // update(0);
+    
+
+    let mut cnt = 0;
     for exercise in exercises {
         let compile_result = match exercise.mode {
             Mode::Test => compile_and_test(exercise, RunMode::Interactive, verbose),
             Mode::Compile => compile_and_run_interactively(exercise),
             Mode::Clippy => compile_only(exercise),
+            // _ => Err(exercise)
         };
-        if !compile_result.unwrap_or(false) {
-            return Err(exercise);
-        }
+        // if !compile_result.unwrap_or(false) {
+        //     // update(20);
+
+        //     // let percentage = num_done as f32 / total as f32 * 100.0;
+        //     // bar.set_message(format!("({:.1} %)", 20));
+        //     // use std::{thread, time};
+        //     // thread::sleep(time::Duration::from_millis(3 * 1000));
+        //     // std::process::exit(0);
+        //     // if (cnt > 10) {
+        //         return Err(exercise);
+        //     // }
+        // }
         num_done += 1;
-        let percentage = num_done as f32 / total as f32 * 100.0;
-        bar.inc(1);
-        bar.set_message(format!("({:.1} %)", percentage));
+        // let percentage = num_done as f32 / total as f32 * 100.0;
+        // update(cnt * 100);
+        // update(cnt * 200);
+
+        // bar.set_message(format!("({})", num_done));
+        // bar.inc(1);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
     }
+    // bar.set_message(format!("({} %)", cnt));
+    // bar.inc(10);
+
+    
+    // std::process::exit(0);
     Ok(())
 }
 
@@ -54,7 +117,7 @@ pub fn test(exercise: &Exercise, verbose: bool) -> Result<(), ()> {
 fn compile_only(exercise: &Exercise) -> Result<bool, ()> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_message(format!("Compiling {exercise}..."));
-    progress_bar.enable_steady_tick(100);
+    progress_bar.enable_steady_tick(Duration::from_secs(100));
 
     let _ = compile(exercise, &progress_bar)?;
     progress_bar.finish_and_clear();
@@ -66,7 +129,7 @@ fn compile_only(exercise: &Exercise) -> Result<bool, ()> {
 fn compile_and_run_interactively(exercise: &Exercise) -> Result<bool, ()> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_message(format!("Compiling {exercise}..."));
-    progress_bar.enable_steady_tick(100);
+    progress_bar.enable_steady_tick(Duration::from_secs(100));
 
     let compilation = compile(exercise, &progress_bar)?;
 
@@ -92,7 +155,7 @@ fn compile_and_run_interactively(exercise: &Exercise) -> Result<bool, ()> {
 fn compile_and_test(exercise: &Exercise, run_mode: RunMode, verbose: bool) -> Result<bool, ()> {
     let progress_bar = ProgressBar::new_spinner();
     progress_bar.set_message(format!("Testing {exercise}..."));
-    progress_bar.enable_steady_tick(100);
+    progress_bar.enable_steady_tick(Duration::from_secs(100));
 
     let compilation = compile(exercise, &progress_bar)?;
     let result = compilation.run();
